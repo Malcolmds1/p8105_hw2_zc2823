@@ -1,0 +1,79 @@
+---
+title: "Homework2_zc2823"
+output: github_document
+date: "2025-09-23"
+---
+
+# Problem 1
+
+```{r}
+library(tidyverse)
+library(readr)
+library(janitor)
+```
+
+## First, clean the data in pols-month.csv.
+
+Load the pols data
+
+```{r}
+pols_month = read_csv("./data/pols-month.csv") %>%
+  clean_names()
+```
+
+Clean the pols data
+
+```{r}
+pols_month_clean = pols_month %>% 
+  separate(mon, into = c("year","month","day"), sep="-") %>% 
+  mutate(year = as.integer(year),
+         month = as.integer(month),
+         day = as.integer(day)) %>% 
+  mutate(month = month.name[month]) %>% 
+  mutate(president = case_when(
+    prez_gop == 1 ~ "gop",
+    prez_dem == 1 ~ "dem",
+    TRUE ~ NA_character_
+  )) %>% 
+  select(-prez_gop, -prez_dem, -day)
+head(pols_month_clean)
+```
+
+## Second, clean the data in snp.csv with similar process to the above
+
+Let's Go!
+
+```{r}
+snp = read_csv("./data/snp.csv") %>%
+  clean_names() %>% 
+  mutate(date = mdy(date)) %>%
+  transmute(
+    year  = year(date),
+    month = month(date, label = TRUE, abbr = FALSE) |> as.character(),
+    close
+  ) %>%
+  arrange(year, match(month, month.name))
+
+head(snp)
+```
+
+## Third, tidy the unemployment data
+
+Load the unemployment data
+
+```{r}
+unemp = read_csv("./data/unemployment.csv") %>%
+  clean_names() %>% 
+  pivot_longer(
+    cols = jan:dec,
+    names_to = "month",
+    values_to = "unemployment",
+    values_transform = list(unemployment = as.numeric)
+  ) %>%
+  mutate(
+    year = as.integer(year),
+    month = month.name[match(month, tolower(month.abb))]
+  ) %>%
+  arrange(year, match(month, month.name))        
+```
+
