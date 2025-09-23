@@ -10,6 +10,7 @@ date: "2025-09-23"
 library(tidyverse)
 library(readr)
 library(janitor)
+library(dplyr)
 ```
 
 ## First, clean the data in pols-month.csv.
@@ -36,7 +37,6 @@ pols_month_clean = pols_month %>%
     TRUE ~ NA_character_
   )) %>% 
   select(-prez_gop, -prez_dem, -day)
-head(pols_month_clean)
 ```
 
 ## Second, clean the data in snp.csv with similar process to the above
@@ -54,7 +54,6 @@ snp = read_csv("./data/snp.csv") %>%
   ) %>%
   arrange(year, match(month, month.name))
 
-head(snp)
 ```
 
 ## Third, tidy the unemployment data
@@ -76,4 +75,46 @@ unemp = read_csv("./data/unemployment.csv") %>%
   ) %>%
   arrange(year, match(month, month.name))        
 ```
+
+## Let's merge them
+
+```{r}
+merged <- pols_month_clean %>%
+  left_join(snp, by = c("year","month")) %>%
+  left_join(unemp, by = c("year","month")) %>%
+  mutate(month = factor(month, levels = month.name, ordered = TRUE)) %>%
+  arrange(year, month)
+```
+
+## About these datasets
+
+### For each dataset
+
+```{r}
+dim(pols_month_clean)
+dim(snp)
+dim(unemp)
+range(pols_month_clean$year)
+range(snp$year)
+range(unemp$year)
+names(pols_month_clean)
+names(snp)
+names(unemp)
+```
+
+The pols_month dataset (822 × 9, 1947–2015) records political data, including counts of governors, senators, representatives by party, and the president’s party.
+The snp dataset (787 × 3, 1969–2015) contains S&P 500 monthly closing values.
+The unemp dataset (816 × 3, 1948–2015) provides monthly U.S. unemployment rates.
+
+### For the resulting dataset
+
+```{r}
+dim(merged)
+range(merged$year, na.rm = TRUE)
+names(merged)
+```
+
+The resulting merged dataset contains 822 observations and 11 variables, covering the years 1947 through 2015. It combines political indicators (such as the number of governors, senators, and representatives by party, along with the president’s party), economic measures (the monthly closing value of the S&P 500 index), and labor market outcomes (the monthly U.S. unemployment rate). Key variables include year, month, president, close, and unemployment, together with counts of governors, senators, and representatives from both parties.
+
+
 
