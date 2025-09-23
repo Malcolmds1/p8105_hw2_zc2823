@@ -117,4 +117,4 @@ names(merged)
 The resulting merged dataset contains 822 observations and 11 variables, covering the years 1947 through 2015. It combines political indicators (such as the number of governors, senators, and representatives by party, along with the president’s party), economic measures (the monthly closing value of the S&P 500 index), and labor market outcomes (the monthly U.S. unemployment rate). Key variables include year, month, president, close, and unemployment, together with counts of governors, senators, and representatives from both parties.
 
 
-
+# Problem 2
