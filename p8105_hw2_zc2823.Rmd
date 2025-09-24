@@ -11,6 +11,7 @@ library(tidyverse)
 library(readr)
 library(janitor)
 library(dplyr)
+library(lubridate)
 ```
 
 ## First, clean the data in pols-month.csv.
@@ -118,3 +119,85 @@ The resulting merged dataset contains 822 observations and 11 variables, coverin
 
 
 # Problem 2
+
+Read and clean the Mr. Trash Wheel sheet
+
+```{r}
+mr_raw <- readxl::read_excel("./data/Trash Wheel Collection Data.xlsx",
+  sheet = "Mr. Trash Wheel",                 
+  range = cellranger::cell_cols("A:N"),     
+  na = c("", "NA"))
+```
+
+```{r}
+mr_trash <- mr_raw %>%
+  clean_names() %>%                           
+  filter(!is.na(dumpster)) %>%               
+  mutate(
+    date = as_date(date),            
+    sports_balls = as.integer(round(sports_balls))   
+  ) %>%
+  select(any_of(c(                         
+    "dumpster", "date", "weight_tons", "volume_cubic_yards",
+    "plastic_bottles", "polystyrene", "cigarette_butts",
+    "glass_bottles", "grocery_bags", "chip_bags",
+    "sports_balls", "homes_powered"
+  )))
+```
+
+Define read_wheel() to standardize cleaning
+
+```{r}
+read_wheel <- function(sheet_name, wheel_tag) {
+  readxl::read_excel(
+    "./data/Trash Wheel Collection Data.xlsx",
+    sheet = sheet_name,
+    range = cellranger::cell_cols("A:N"),
+    na = c("", "NA")
+  ) %>%
+    janitor::clean_names() %>%
+    dplyr::filter(!is.na(dumpster)) %>%
+    dplyr::mutate(
+      date  = lubridate::as_date(date),
+      wheel = wheel_tag
+    ) %>%
+    dplyr::mutate(
+      dplyr::across(
+        dplyr::any_of("sports_balls"),
+        ~ as.integer(round(.x))
+      )
+    ) %>%
+    dplyr::select(dplyr::any_of(c(
+      "wheel", "dumpster", "date", "weight_tons", "volume_cubic_yards",
+      "plastic_bottles", "polystyrene", "cigarette_butts",
+      "glass_bottles", "grocery_bags", "chip_bags",
+      "sports_balls", "homes_powered"
+    )))
+}
+```
+
+```{r}
+prof_trash <- read_wheel("Professor Trash Wheel", "Professor")
+gwyn_trash <- read_wheel("Gwynnda Trash Wheel", "Gwynnda")
+
+trash_all <- dplyr::bind_rows(mr_trash, prof_trash, gwyn_trash) %>%
+  dplyr::arrange(date, wheel, dumpster)
+```
+
+Calculate the total weight of Professor Trash Wheel trash
+and the total number of cigarette butts collected by Gwynnda in June of 2022
+```{r}
+prof_total_weight <- prof_trash %>%
+  summarise(total_tons = sum(weight_tons, na.rm = TRUE))
+
+gwyn_cigs_jun_2022 <- gwyn_trash %>%
+  filter(lubridate::year(date) == 2022, lubridate::month(date) == 6) %>%
+  summarise(total_cig_butts = sum(cigarette_butts, na.rm = TRUE))
+```
+
+## Summary
+
+The combined Trash Wheel dataset includes `r format(nrow(trash_all), big.mark = ",")` observations across three wheels (Mr., Professor, and Gwynnda). The data span from `r min(trash_all$date, na.rm = TRUE)` to `r max(trash_all$date, na.rm = TRUE)` and record variables such as the dumpster identifier, collection date, total trash weight (weight tons), counts of cigarette butts, plastic bottles, chip bags, and sports balls. For available data, Professor Trash Wheel collected a total of `r format(round(prof_total_weight$total_tons, 1), nsmall = 1)` tons of trash. In June 2022, Gwynnda collected `r format(gwyn_cigs_jun_2022$total_cig_butts, big.mark = ",", scientific = FALSE)` cigarette butts.
+
+
+
