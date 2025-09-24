@@ -200,4 +200,5 @@ gwyn_cigs_jun_2022 <- gwyn_trash %>%
 The combined Trash Wheel dataset includes `r format(nrow(trash_all), big.mark = ",")` observations across three wheels (Mr., Professor, and Gwynnda). The data span from `r min(trash_all$date, na.rm = TRUE)` to `r max(trash_all$date, na.rm = TRUE)` and record variables such as the dumpster identifier, collection date, total trash weight (weight tons), counts of cigarette butts, plastic bottles, chip bags, and sports balls. For available data, Professor Trash Wheel collected a total of `r format(round(prof_total_weight$total_tons, 1), nsmall = 1)` tons of trash. In June 2022, Gwynnda collected `r format(gwyn_cigs_jun_2022$total_cig_butts, big.mark = ",", scientific = FALSE)` cigarette butts.
 
 
+# Question 3
 
