@@ -240,7 +240,7 @@ zori <- read_csv("./data/ZORI.csv", show_col_types = FALSE) %>%
   select(zip, month, rent)     
 ```
 
-Merge, modify known abnormal ZIP 
+Modify known abnormal ZIP, and merge 
 (11201 and 10463 in zip_ref occur twice)
 
 ```{r}
@@ -300,3 +300,56 @@ n_neigh <- n_distinct(zori_full$neighborhood)
 ```
 
 The final tidy dataset contains `r n_obs` observations, covering `r n_zip` unique ZIP codes and `r n_neigh` unique neighborhoods.
+
+### ZIP codes that are in zip_ref but not in zori
+
+```{r}
+missing_zips <- zip_ref %>% 
+  anti_join(zori, by = "zip")
+head(missing_zips)
+```
+
+#### WHY
+Some ZIP codes are missing from the Zillow Rental Price dataset because they don’t really work for tracking rents. For example, certain ZIP codes mainly cover business or industrial areas where very few people actually live, so there aren’t enough rental homes to measure. Others may have only a small number of residents or too few rental listings, which makes the data unreliable. There are also special ZIP codes for things like universities, government buildings, or P.O. boxes that don’t represent normal housing markets. Zillow leaves out these cases so that the dataset only shows ZIP codes where rental markets are active and the numbers are meaningful.
+
+### Rental price fluctuation during the COVID-19 pandemic
+
+Set the time range
+
+```{r}
+zori_sub <- zori_full %>%
+  filter(month %in% c(ymd("2020-01-31"), ymd("2021-01-31")))
+```
+
+Calculate rent change for every ZIP
+
+```{r}
+jan20 <- ymd("2020-01-31")
+jan21 <- ymd("2021-01-31")
+
+top10_drop <- zori_full %>%
+  filter(month %in% c(jan20, jan21)) %>%
+  distinct(zip, borough, neighborhood, month, .keep_all = TRUE) %>%    
+  mutate(month_lab = format(month, "%Y_%m_%d")) %>%                 
+  select(zip, borough, neighborhood, month_lab, rent) %>%
+  pivot_wider(
+    names_from  = month_lab,
+    values_from = rent,
+    names_prefix = "rent_"
+  ) %>%
+  filter(!is.na(`rent_2020_01_31`), !is.na(`rent_2021_01_31`)) %>%
+  mutate(drop_2020_to_2021 = `rent_2020_01_31` - `rent_2021_01_31`) %>%
+  arrange(desc(drop_2020_to_2021)) %>%
+  slice_head(n = 10) %>%
+  select(
+    zip, borough, neighborhood,
+    rent_2020 = `rent_2020_01_31`,
+    rent_2021 = `rent_2021_01_31`,
+    drop_2020_to_2021
+  )
+
+top10_drop
+```
+
+#### Comment
+The results show that the ZIP codes with the largest rental price drops from January 2020 to January 2021 are concentrated in Manhattan (New York County). Neighborhoods such as Lower Manhattan, the Lower East Side, Chelsea, Gramercy Park, and Greenwich Village experienced declines of around $680–$910. These areas are typically high-demand, high-rent markets, but during the COVID-19 pandemic demand fell sharply as many residents left the city or shifted to remote work. This explains why the steepest rental declines occurred in Manhattan, compared to other boroughs.
